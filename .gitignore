@@ -1,0 +1,26 @@
+# Dependencias de Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Archivos temporales
+*.tmp
+*.temp
+.DS_Store
+Thumbs.db
+
+# Archivos de desarrollo
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Build outputs (para futuras versiones)
+dist/
+build/
+
+# Environment files
+.env
+.env.local
