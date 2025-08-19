@@ -5,6 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Chakana | Mapa interactivo (Ancestralidad ↔ Innovación)</title>
   <meta name="description" content="Reinterpretación interactiva de la Chakana andina: capas semánticas, niveles y su diálogo con la innovación. Página estática en HTML, CSS y JS." />
+  
+  <!-- Open Graph tags -->
+  <meta property="og:title" content="Chakana Ancestral - Sabiduría Andina Interactiva" />
+  <meta property="og:description" content="Explora la sabiduría ancestral andina a través de la Chakana interactiva. Conecta con la cosmovisión indígena y su diálogo con la innovación moderna." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://marcos9309.github.io/Chakana_ancestral/" />
+  <meta property="og:image" content="https://marcos9309.github.io/Chakana_ancestral/chakana-preview.png" />
+  
+  <!-- Twitter Card tags -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Chakana Ancestral - Sabiduría Andina Interactiva" />
+  <meta name="twitter:description" content="Explora la sabiduría ancestral andina a través de la Chakana interactiva." />
+  
+  <!-- Additional meta -->
+  <meta name="author" content="MarcoS9309" />
+  <meta name="keywords" content="chakana, andino, ancestral, quechua, cosmovisión, educativo, interactivo, cultural, Pachamama, Tawantinsuyu" />
+  <meta name="theme-color" content="#d4af37" />
+  <link rel="canonical" href="https://marcos9309.github.io/Chakana_ancestral/" />
+  
+  <!-- Structured Data -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Chakana Ancestral",
+    "description": "Aplicación interactiva educativa sobre la Chakana andina, símbolo sagrado que representa el equilibrio y la cosmovisión indígena.",
+    "url": "https://marcos9309.github.io/Chakana_ancestral/",
+    "author": {
+      "@type": "Person",
+      "name": "MarcoS9309"
+    },
+    "inLanguage": "es",
+    "keywords": "chakana, andino, ancestral, educación, cosmovisión, Pachamama",
+    "applicationCategory": "EducationalApplication",
+    "operatingSystem": "Web Browser",
+    "browserRequirements": "Requires JavaScript enabled"
+  }
+  </script>
   <style>
     :root{
       /* Paleta ancestral inspirada en textiles andinos y la naturaleza */
@@ -374,7 +412,7 @@
     </header>
 
     <section class="main-layout">
-      <article class="card info" id="info">
+      <article class="card info" id="info" aria-live="polite" aria-label="Información de la región seleccionada">
         <h2 id="info-title">Centro · Axis mundi</h2>
         <div class="meta">
           <span class="chip" id="modeTag">Capa: Ancestral</span>
@@ -614,6 +652,27 @@
       }
     };
 
+    // --- Utilitarios ---
+    function debounce(func, wait) {
+      let timeout;
+      return function executedFunction(...args) {
+        const later = () => {
+          clearTimeout(timeout);
+          func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+      };
+    }
+
+    // --- Configuración y constantes ---
+    const CONFIG = {
+      TOUR_INTERVAL: 3000, // 3 segundos por región
+      TOAST_DURATION: 1800, // 1.8 segundos
+      TOOLTIP_OFFSET: 10, // Margen para tooltips
+      FOCUS_DELAY: 100 // Delay para enfocar elementos
+    };
+
     // --- Estado de la aplicación ---
     const $ = (q, root=document) => root.querySelector(q);
     const $$ = (q, root=document) => Array.from(root.querySelectorAll(q));
@@ -749,20 +808,31 @@
       });
     });
 
-    // Inicialización desde URL hash
-    function inicializarDesdeURL(){
-      const [region, modo] = (location.hash.replace('#','') || '').split('-');
-      
-      if(CHAKANA_DATA[region]) {
-        chakanaApp.selected = region;
+    // Inicialización desde URL hash con validación
+    function inicializarDesdeURL() {
+      try {
+        const [region, modo] = (location.hash.replace('#', '') || '').split('-');
+        
+        // Validar y actualizar región
+        if (region && CHAKANA_DATA[region]) {
+          chakanaApp.selected = region;
+        }
+        
+        // Validar y actualizar modo
+        if (modo === 'ancestral' || modo === 'innovacion') {
+          chakanaApp.mode = modo;
+        }
+        
+        document.body.setAttribute('data-mode', chakanaApp.mode);
+        renderRegionInfo();
+      } catch (error) {
+        console.warn('Error al inicializar desde URL:', error);
+        // Usar valores por defecto en caso de error
+        chakanaApp.selected = 'centro';
+        chakanaApp.mode = 'ancestral';
+        document.body.setAttribute('data-mode', 'ancestral');
+        renderRegionInfo();
       }
-      
-      if(modo === 'ancestral' || modo === 'innovacion') {
-        chakanaApp.mode = modo;
-      }
-      
-      document.body.setAttribute('data-mode', chakanaApp.mode);
-      renderRegionInfo();
     }
 
     // Inicializar aplicación
@@ -807,14 +877,22 @@
         const selMap = {centro:'#r-centro', norte:'#r-norte', este:'#r-este', sur:'#r-sur', oeste:'#r-oeste'};
         const el = document.querySelector(selMap[chakanaApp.selected]);
         el && el.focus();
-      }, 3000);
+      }, CONFIG.TOUR_INTERVAL);
       document.getElementById('tourBtn').setAttribute('aria-pressed','true');
     }
 
-    function stopTour(){
-      if(tourTimer){ clearInterval(tourTimer); tourTimer = null; }
-      document.getElementById('tourBtn').setAttribute('aria-pressed','false');
+    function stopTour() {
+      if (tourTimer) {
+        clearInterval(tourTimer);
+        tourTimer = null;
+      }
+      document.getElementById('tourBtn').setAttribute('aria-pressed', 'false');
     }
+    
+    // Limpiar timer al salir de la página
+    window.addEventListener('beforeunload', () => {
+      stopTour();
+    });
 
     // Botón de recorrido
     document.getElementById('tourBtn').addEventListener('click', () => {
@@ -824,38 +902,94 @@
     // Botón copiar estado
     document.getElementById('copyBtn').addEventListener('click', async () => {
       updateURL();
-      try{
+      
+      // Verificar soporte del navegador
+      if (!navigator.clipboard) {
+        showToast('Clipboard no soportado. Copia manualmente la URL.');
+        return;
+      }
+      
+      try {
         await navigator.clipboard.writeText(location.href);
         showToast('Enlace del estado copiado');
-      }catch(e){ showToast('No se pudo copiar. Copia manualmente la URL.'); }
+      } catch(error) {
+        console.warn('Error al copiar al portapapeles:', error);
+        showToast('No se pudo copiar. Copia manualmente la URL.');
+      }
     });
 
-    // Ayuda (modal)
+    // Ayuda (modal) con mejor manejo de foco
     const helpBtn = document.getElementById('helpBtn');
     const helpBackdrop = document.getElementById('helpBackdrop');
     const helpModal = document.getElementById('helpModal');
     const closeHelp = document.getElementById('closeHelp');
-    function openHelp(){ helpBackdrop.style.display='block'; helpModal.style.display='grid'; helpModal.setAttribute('aria-hidden','false'); }
-    function closeHelpFn(){ helpBackdrop.style.display='none'; helpModal.style.display='none'; helpModal.setAttribute('aria-hidden','true'); }
+    
+    let previousFocus = null;
+    
+    function openHelp() {
+      previousFocus = document.activeElement;
+      helpBackdrop.style.display = 'block';
+      helpModal.style.display = 'grid';
+      helpModal.setAttribute('aria-hidden', 'false');
+      // Enfocar el primer elemento focuseable del modal
+      setTimeout(() => closeHelp.focus(), CONFIG.FOCUS_DELAY);
+    }
+    
+    function closeHelpFn() {
+      helpBackdrop.style.display = 'none';
+      helpModal.style.display = 'none';
+      helpModal.setAttribute('aria-hidden', 'true');
+      // Devolver el foco al elemento que abrió el modal
+      if (previousFocus) {
+        previousFocus.focus();
+        previousFocus = null;
+      }
+    }
+    
     helpBtn.addEventListener('click', openHelp);
     closeHelp.addEventListener('click', closeHelpFn);
     helpBackdrop.addEventListener('click', closeHelpFn);
+    
+    // Cerrar modal con Escape
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && helpModal.style.display === 'grid') {
+        closeHelpFn();
+      }
+    });
 
     // Tooltip
     const tooltip = document.getElementById('tooltip');
-    function showTooltip(x,y,title,desc){
-      tooltip.style.display='block';
-      tooltip.style.left = x + 'px';
-      tooltip.style.top = y + 'px';
+    // Función para mostrar tooltip con validación de posición
+    function showTooltip(x, y, title, desc) {
+      if (!tooltip || !title) return;
+      
+      tooltip.style.display = 'block';
       tooltip.querySelector('.t-title').textContent = title;
-      tooltip.querySelector('.t-desc').textContent = desc;
+      tooltip.querySelector('.t-desc').textContent = desc || '';
+      
+      // Evitar que el tooltip se salga de la pantalla
+      const rect = tooltip.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      
+      let finalX = Math.max(CONFIG.TOOLTIP_OFFSET, Math.min(x, viewportWidth - rect.width - CONFIG.TOOLTIP_OFFSET));
+      let finalY = Math.max(CONFIG.TOOLTIP_OFFSET, y - rect.height - CONFIG.TOOLTIP_OFFSET);
+      
+      // Si no cabe arriba, mostrar abajo
+      if (finalY < CONFIG.TOOLTIP_OFFSET) {
+        finalY = y + 20;
+      }
+      
+      tooltip.style.left = finalX + 'px';
+      tooltip.style.top = finalY + 'px';
       tooltip.classList.add('visible');
-      tooltip.setAttribute('aria-hidden','false');
+      tooltip.setAttribute('aria-hidden', 'false');
     }
-    function hideTooltip(){
+    function hideTooltip() {
+      if (!tooltip) return;
       tooltip.classList.remove('visible');
-      tooltip.setAttribute('aria-hidden','true');
-      tooltip.style.display='none';
+      tooltip.setAttribute('aria-hidden', 'true');
+      tooltip.style.display = 'none';
     }
 
     // Toast
@@ -864,17 +998,20 @@
       toast.textContent = msg;
       toast.style.display='block';
       toast.classList.add('show');
-      setTimeout(() => { toast.classList.remove('show'); toast.style.display='none'; }, 1800);
+      setTimeout(() => { toast.classList.remove('show'); toast.style.display='none'; }, CONFIG.TOAST_DURATION);
     }
 
-    // Enriquecer regiones con tooltip y navegación
+    // Enriquecer regiones con tooltip y navegación (con debounce)
     $$('#chakana [data-key]').forEach(el => {
       const key = el.dataset.key;
-      el.addEventListener('mousemove', (ev) => {
+      
+      const debouncedShowTooltip = debounce((ev) => {
         const node = CHAKANA_DATA[key];
         const desc = (node?.[chakanaApp.mode]?.resumen || '').slice(0, 140);
         showTooltip(ev.clientX, ev.clientY, node?.label || key, desc);
-      });
+      }, 50);
+      
+      el.addEventListener('mousemove', debouncedShowTooltip);
       el.addEventListener('mouseleave', hideTooltip);
       el.addEventListener('focus', (ev)=>{
         const node = CHAKANA_DATA[key];

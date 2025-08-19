@@ -1,0 +1,33 @@
+{
+  "name": "chakana-ancestral",
+  "version": "1.0.0",
+  "description": "Prototipo interactivo de sabiduría andina - Conexión entre ancestralidad e innovación",
+  "main": "index.html",
+  "scripts": {
+    "start": "python3 -m http.server 8080",
+    "lint": "eslint . --ext .js,.html --ignore-pattern node_modules",
+    "lint:fix": "eslint . --ext .js,.html --ignore-pattern node_modules --fix",
+    "validate": "html-validate index.html",
+    "test": "echo 'No tests yet' && exit 0"
+  },
+  "keywords": [
+    "chakana",
+    "andino",
+    "ancestral",
+    "educativo",
+    "interactivo",
+    "cultural"
+  ],
+  "author": "MarcoS9309",
+  "license": "MIT",
+  "devDependencies": {
+    "eslint": "^8.0.0",
+    "eslint-plugin-html": "^7.0.0",
+    "html-validate": "^8.0.0"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ]
+}
